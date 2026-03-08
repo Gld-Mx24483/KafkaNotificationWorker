@@ -31,7 +31,6 @@ namespace NotificationWorker.Service.Implementation
                 EnableAutoCommit = false
             };
 
-            // manually manage consumer lifetime — don't use "using var"
             var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
 
             try
@@ -62,7 +61,7 @@ namespace NotificationWorker.Service.Implementation
                         _logger.LogInformation("[EMAIL] Body       : {Body}",          emailMessage.Body);
                         _logger.LogInformation("────────────────────────────────────────────");
 
-                        consumer.Commit(result); // only commit after successful processing
+                        consumer.Commit(result); 
                     }
                     catch (OperationCanceledException)
                     {
