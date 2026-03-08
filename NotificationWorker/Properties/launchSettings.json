@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "NotificationWorker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "KafkaBootstrapServers": "pkc-921jm.us-east-2.aws.confluent.cloud:9092",
+        "SaslUsername":"7TJ2MZQOSHUPSBC7",
+        "SaslPassword":"cflttVOctgUnZnr93BAdJLIoG4SZB0lM+eCjBb4/BI5p5I4Z1UbdXjwy3CSTQV5Q",
+        "KafkaTopicName": "qsp.notifications",
+      }
+    }
+  }
+}
