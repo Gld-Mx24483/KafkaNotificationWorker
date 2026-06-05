@@ -89,7 +89,7 @@ stages:
               oc project $(openShiftProjectUat)
               
               oc set image deployment/$(deploymentNameUat) \
-                $(apiName)=$(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) \
+                notification-worker=$(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) \
                 -n $(openShiftProjectUat)
               
               oc rollout status deployment/$(deploymentNameUat) -n $(openShiftProjectUat)
