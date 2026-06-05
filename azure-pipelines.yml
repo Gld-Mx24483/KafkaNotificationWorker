@@ -61,7 +61,7 @@ stages:
 
 - stage: DeployUAT
   displayName: Deploy to UAT
-  condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/heads/uat'))
+  condition: succeeded('BuildUAT')
   dependsOn: BuildUAT
   jobs:
     - job: Deploy
