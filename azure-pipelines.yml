@@ -12,10 +12,11 @@ variables:
   dockerfilePath: 'Dockerfile'
   devEnv: 'dev'
   uatEnv: 'uat'
-  dockerIdDev: tokiacrdev
-  dockerIdUat: tokiacruat
-  imageNameDev: tokiacr-kafka-notification-worker-dev
-  imageNameUat: tokiacr-kafka-notification-worker-uat
+  acrRegistry: 'tokiacr'
+  acrLoginServer: 'tokiacr.azurecr.io'
+  acrUsername: 'tokiacr'
+  imageNameDev: 'tokiacr-kafka-notification-worker-dev'
+  imageNameUat: 'tokiacr-kafka-notification-worker-uat'
   imageVersion: latest
   vmImageName: 'ubuntu-latest'
   buildConfiguration: 'Release'
@@ -26,7 +27,7 @@ stages:
   displayName: DEV
   jobs:
     - job: Build
-      displayName: Build
+      displayName: Build and Push to ACR
       pool:
         vmImage: $(vmImageName)
       steps:
@@ -34,16 +35,16 @@ stages:
           inputs:
             targetType: 'inline'
             script: |
-              docker login -u $(dockerIdDev) -p $(dockerPasswordDev) $(dockerIdDev).azurecr.io
-              docker build --build-arg environment=Development -t $(dockerIdDev).azurecr.io/$(devEnv)/$(imageNameDev):$(tag) $(Build.SourcesDirectory)
-              docker push $(dockerIdDev).azurecr.io/$(devEnv)/$(imageNameDev):$(tag)
+              docker login -u $(acrUsername) -p $(acrPasswordDev) $(acrLoginServer)
+              docker build --build-arg environment=Development -t $(acrLoginServer)/$(devEnv)/$(imageNameDev):$(tag) $(Build.SourcesDirectory)
+              docker push $(acrLoginServer)/$(devEnv)/$(imageNameDev):$(tag)
 
 - stage: BuildUAT
   condition: and(always(), contains(variables['Build.SourceBranch'], 'refs/heads/uat'))
   displayName: UAT
   jobs:
     - job: Build
-      displayName: Build
+      displayName: Build and Push to ACR
       pool:
         vmImage: $(vmImageName)
       steps:
@@ -51,6 +52,6 @@ stages:
           inputs:
             targetType: 'inline'
             script: |
-              docker login -u $(dockerIdUat) -p $(dockerPasswordUat) $(dockerIdUat).azurecr.io
-              docker build --build-arg environment=uat -t $(dockerIdUat).azurecr.io/$(uatEnv)/$(imageNameUat):$(tag) $(Build.SourcesDirectory)
-              docker push $(dockerIdUat).azurecr.io/$(uatEnv)/$(imageNameUat):$(tag)
+              docker login -u $(acrUsername) -p $(acrPasswordUat) $(acrLoginServer)
+              docker build --build-arg environment=uat -t $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) $(Build.SourcesDirectory)
+              docker push $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag)
