@@ -1,0 +1,56 @@
+trigger:
+  branches:
+    include:
+      - dev
+      - uat
+
+variables:
+  tag: '$(Build.BuildId)'
+  appName: 'kafka-notification-worker'
+  apiName: 'NotificationWorker'
+  namespace: 'default'
+  dockerfilePath: 'Dockerfile'
+  devEnv: 'dev'
+  uatEnv: 'uat'
+  dockerIdDev: tokiacrdev
+  dockerIdUat: tokiacruat
+  imageNameDev: tokiacr-kafka-notification-worker-dev
+  imageNameUat: tokiacr-kafka-notification-worker-uat
+  imageVersion: latest
+  vmImageName: 'ubuntu-latest'
+  buildConfiguration: 'Release'
+
+stages:
+- stage: BuildDEV
+  condition: and(always(), contains(variables['Build.SourceBranch'], 'refs/heads/dev'))
+  displayName: DEV
+  jobs:
+    - job: Build
+      displayName: Build
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+        - task: Bash@3
+          inputs:
+            targetType: 'inline'
+            script: |
+              docker login -u $(dockerIdDev) -p $(dockerPasswordDev) $(dockerIdDev).azurecr.io
+              docker build --build-arg environment=Development -t $(dockerIdDev).azurecr.io/$(devEnv)/$(imageNameDev):$(tag) $(Build.SourcesDirectory)
+              docker push $(dockerIdDev).azurecr.io/$(devEnv)/$(imageNameDev):$(tag)
+
+- stage: BuildUAT
+  condition: and(always(), contains(variables['Build.SourceBranch'], 'refs/heads/uat'))
+  displayName: UAT
+  jobs:
+    - job: Build
+      displayName: Build
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+        - task: Bash@3
+          inputs:
+            targetType: 'inline'
+            script: |
+              docker login -u $(dockerIdUat) -p $(dockerPasswordUat) $(dockerIdUat).azurecr.io
+              docker build --build-arg environment=uat -t $(dockerIdUat).azurecr.io/$(uatEnv)/$(imageNameUat):$(tag) $(Build.SourcesDirectory)
+              docker push $(dockerIdUat).azurecr.io/$(uatEnv)/$(imageNameUat):$(tag)
