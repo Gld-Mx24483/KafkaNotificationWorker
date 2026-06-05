@@ -20,6 +20,9 @@ variables:
   imageVersion: latest
   vmImageName: 'ubuntu-latest'
   buildConfiguration: 'Release'
+  openShiftServerUat: 'https://api.rm1.0a51.p1.openshiftapps.com:6443'
+  openShiftProjectUat: 'tokiadedapo-dev'
+  deploymentNameUat: 'notification-worker'
 
 stages:
 - stage: BuildDEV
@@ -55,3 +58,100 @@ stages:
               docker login -u $(acrUsername) -p $(acrPasswordUat) $(acrLoginServer)
               docker build --build-arg environment=uat -t $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) $(Build.SourcesDirectory)
               docker push $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag)
+
+- stage: DeployUAT
+  displayName: Deploy to UAT
+  condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/heads/uat'))
+  dependsOn: BuildUAT
+  jobs:
+    - job: Deploy
+      displayName: Deploy to OpenShift UAT
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+        - task: Bash@3
+          displayName: Install OpenShift CLI
+          inputs:
+            targetType: 'inline'
+            script: |
+              curl -fsSLO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
+              tar -xzf openshift-client-linux.tar.gz
+              sudo mv oc /usr/local/bin/
+              oc version
+
+        - task: Bash@3
+          displayName: Deploy to UAT Cluster
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Login to OpenShift
+              oc login --token=$(ocServiceTokenUat) --server=$(openShiftServerUat) --insecure-skip-tls-verify=true
+              
+              # Switch to UAT project
+              oc project $(openShiftProjectUat)
+              
+              # Update deployment with new image
+              oc set image deployment/$(deploymentNameUat) \
+                $(apiName)=$(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) \
+                -n $(openShiftProjectUat)
+              
+              # Verify rollout
+              oc rollout status deployment/$(deploymentNameUat) -n $(openShiftProjectUat)
+
+# trigger:
+#   branches:
+#     include:
+#       - dev
+#       - uat
+
+# variables:
+#   tag: '$(Build.BuildId)'
+#   appName: 'kafka-notification-worker'
+#   apiName: 'NotificationWorker'
+#   namespace: 'default'
+#   dockerfilePath: 'Dockerfile'
+#   devEnv: 'dev'
+#   uatEnv: 'uat'
+#   acrRegistry: 'tokiacr'
+#   acrLoginServer: 'tokiacr.azurecr.io'
+#   acrUsername: 'tokiacr'
+#   imageNameDev: 'tokiacr-kafka-notification-worker-dev'
+#   imageNameUat: 'tokiacr-kafka-notification-worker-uat'
+#   imageVersion: latest
+#   vmImageName: 'ubuntu-latest'
+#   buildConfiguration: 'Release'
+
+# stages:
+# - stage: BuildDEV
+#   condition: and(always(), contains(variables['Build.SourceBranch'], 'refs/heads/dev'))
+#   displayName: DEV
+#   jobs:
+#     - job: Build
+#       displayName: Build and Push to ACR
+#       pool:
+#         vmImage: $(vmImageName)
+#       steps:
+#         - task: Bash@3
+#           inputs:
+#             targetType: 'inline'
+#             script: |
+#               docker login -u $(acrUsername) -p $(acrPasswordDev) $(acrLoginServer)
+#               docker build --build-arg environment=Development -t $(acrLoginServer)/$(devEnv)/$(imageNameDev):$(tag) $(Build.SourcesDirectory)
+#               docker push $(acrLoginServer)/$(devEnv)/$(imageNameDev):$(tag)
+
+# - stage: BuildUAT
+#   condition: and(always(), contains(variables['Build.SourceBranch'], 'refs/heads/uat'))
+#   displayName: UAT
+#   jobs:
+#     - job: Build
+#       displayName: Build and Push to ACR
+#       pool:
+#         vmImage: $(vmImageName)
+#       steps:
+#         - task: Bash@3
+#           inputs:
+#             targetType: 'inline'
+#             script: |
+#               docker login -u $(acrUsername) -p $(acrPasswordUat) $(acrLoginServer)
+#               docker build --build-arg environment=uat -t $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag) $(Build.SourcesDirectory)
+#               docker push $(acrLoginServer)/$(uatEnv)/$(imageNameUat):$(tag)
